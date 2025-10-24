@@ -98,6 +98,7 @@
 
 	<h1>Pick templates</h1>
 	<p>Pick a template to send from</p>
+	<div id="templates"></div>
 	<script>
 		// 		async function loadEmails() {
 		// 			const res = await fetch("/api/emails");
@@ -372,19 +373,368 @@
 	</script>
 
 	<script>
-		// ----- config -----
-		const API = "/api/email_templates";
-		const DEBOUNCE_MS = 180;
+		(async function () {
+			// ----- config -----
+			const API = "/api/email_templates";
+			const DEBOUNCE_MS = 180;
 
-		// ----- state -----
-		let emails = [];
-		let filtered = [];
-		let selected = new Map(); // id -> email object
-		let activeIndex = -1;
+			// ----- state -----
+			let templates = [];
+			let filtered = [];
+			let selected = new Map(); // id -> email object
+			let activeIndex = -1;
 
-		// ----- DOM -----
-		const input = document.getElementById("template_search");
-		const dropdown = document.getElementById("template_dropdown");
-		const selectedList = document.getElementById("template_selectedList");
+			// ----- DOM -----
+			const templatesRoot = document.getElementById("templates");
+
+			if (!templatesRoot) {
+				console.error("Template root not found");
+				return;
+			}
+
+			const tplControls = document.createElement("div");
+			tplControls.style.margin = "8px";
+			tplControls.style.display = "flex";
+			tplControls.style.flexDirection = "column";
+			tplControls.style.gap = "12px";
+
+			const chipArea = document.createElement("div");
+			chipArea.style.display = "flex";
+			chipArea.style.flexWrap = "wrap";
+			chipArea.style.gap = "8";
+			chipArea.setAttribute("aria-label", "Template List");
+
+			// Instruction / mode indicator
+			const instr = document.createElement('div');
+			instr.style.fontSize = "13px";
+			instr.style.color = "#333";
+			instr.innerText =
+				"Select template chips (click) to choose template(s). Then click a selected recipient below to assign.";
+
+			// Assignment matrix / selected emails list
+			const assignArea = document.createElement("div");
+			assignArea.style.display = "flex";
+			assignArea.style.flexDirection = "column";
+			assignArea.style.gap = "8px";
+			assignArea.style.marginTop = "8px";
+
+			const controlsRow = document.createElement("div");
+			controlsRow.style.display = "flex";
+			controlsRow.style.gap = "8px";
+			controlsRow.style.alignItems = "center";
+
+			const refreshBtn = document.createElement("button");
+			refreshBtn.textContent = "Refresh selected recipients";
+			refreshBtn.style.cursor = "pointer";
+
+			const clearAssignmentsBtn = document.createElement("button");
+			clearAssignmentsBtn.textContent = "Clear all assignments";
+			clearAssignmentsBtn.style.cursor = "pointer";
+
+			controlsRow.appendChild(refreshBtn);
+			controlsRow.appendChild(clearAssignmentsBtn);
+
+			tplControls.appendChild(instr);
+			tplControls.appendChild(chipArea);
+			tplControls.appendChild(controlsRow);
+			tplControls.appendChild(assignArea);
+
+			// Replace current templates content with our controls (preserving loading text)
+			templatesRoot.innerHTML = "";
+			templatesRoot.appendChild(tplControls);
+
+			// Utility: escape
+			const esc = (s = "") =>
+				String(s).replace(
+					/[&<>"']/g,
+					(ch) =>
+						({
+							"&": "&amp;",
+							"<": "&lt;",
+							">": "&gt;",
+							'"': "&quot;",
+							"'": "&#39;",
+						}[ch])
+				);
+
+			try {
+				const resp = await fetch(API);
+				if (!resp.ok) throw new Error("fetch failed: " + resp.status);
+				data = await resp.json();
+				templates = data.Email_Templates;
+			} catch (err) {
+				console.error("Could not load templates:", err);
+				chipArea.innerHTML =
+					'<div class="muted">Failed to load templates.</div>';
+				return;
+			}
+
+			let selectedTemplateIds = new Set();
+
+			function renderTemplateCards() {
+				chipArea.innerHTML = "";
+				templates.forEach((t) => {
+					const chip = document.createElement("button");
+					chip.className = "tpl-chip";
+					chip.dataset.tplId = t.id;
+					chip.style.padding = "8px 10px";
+					chip.style.border = "1px solid #d0d7ef";
+					chip.style.borderRadius = "16px";
+					chip.style.background = "#f8fbff";
+					chip.style.cursor = "pointer";
+					chip.style.fontSize = "13px";
+					chip.innerHTML = `<strong>${esc(t.name)}</strong>`;
+					if (selectedTemplateIds.has(t.id)) {
+						chip.style.boxShadow = "0 0 0 3px rgba(58,108,255,0.12)";
+						chip.style.background = "#eaf0ff";
+					}
+					chip.addEventListener("click", (ev) => {
+						ev.preventDefault();
+						const id = chip.dataset.tplId;
+						if (selectedTemplateIds.has(id)) selectedTemplateIds.delete(id);
+						else selectedTemplateIds.add(id);
+						renderTemplateCards();
+						updateInstructions();
+					});
+					// tooltip / preview on hover
+					chip.title = t.name ? t.name.substring(0, 500) : "";
+					chipArea.appendChild(chip);
+				});
+			}
+
+			function updateInstructions() {
+				if (!selectedTemplateIds.size) {
+					instr.innerText =
+						"Click template chips to select template(s). Then click a recipient below to assign.";
+				} else if (selectedTemplateIds.size == 1) {
+					instr.innerText = `Template selected (${
+						Array.from(selectedTemplateIds)[0]
+					}). Click a recipient to assign / toggle it.`;
+				} else {
+					instr.innerText = `${selectedTemplateIds.size} templates selected. Click a recipient to assign / toggle them.`;
+				}
+			}
+
+			// Assignments storage: map of emailId -> array of templateIds (persisted)
+			const STORAGE_KEY = "email_template_assignments_v1";
+			function loadAssignments() {
+				try {
+					const raw = localStorage.getItem(STORAGE_KEY);
+					return raw ? JSON.parse(raw) : {};
+				} catch (e) {
+					return {};
+				}
+			}
+
+			function saveAssignments(obj) {
+				localStorage.setItem(STORAGE_KEY, JSON.stringify(obj || {}));
+			}
+
+			let assignments = loadAssignments(); // plain object
+
+			// Helper: read selected recipients directly from DOM (existing selected chips)
+			// selectedList is the container used previously in your UI (id="selectedList")
+			function readSelectedRecipientsFromDOM() {
+				const container = document.getElementById("selectedList");
+				if (!container) return [];
+				// chips use data-id attribute (as in your markup)
+				const chips = container.querySelectorAll(".chip[data-id]");
+				const out = [];
+				chips.forEach((ch) => {
+					const id = ch.dataset.id;
+					// find name/email text inside
+					const name = ch.querySelector(".meta strong")
+						? ch.querySelector(".meta strong").innerText
+						: "";
+					const emailMatch = ch.querySelector(".meta .muted")
+						? ch.querySelector(".meta .muted").innerText
+						: "";
+					// clean emailMatch remove <> if present
+					const email = emailMatch.replace(/[<>]/g, "").trim();
+					out.push({ id, name, email });
+				});
+				return out;
+			}
+
+			// Render assignment area: a list of selected recipients with their assigned templates
+			function renderAssignmentsUI() {
+				assignArea.innerHTML = "";
+				const recipients = readSelectedRecipientsFromDOM();
+				if (!recipients.length) {
+					assignArea.innerHTML =
+						'<div class="muted">No recipients selected. Pick recipients above to assign templates.</div>';
+					return;
+				}
+
+				// header row
+				const header = document.createElement("div");
+				header.style.display = "flex";
+				header.style.gap = "12px";
+				header.style.alignItems = "center";
+				header.style.fontWeight = "600";
+				header.innerHTML = `<div style="width:260px">Recipient</div><div>Assigned templates</div>`;
+				assignArea.appendChild(header);
+
+				recipients.forEach((r) => {
+					const row = document.createElement("div");
+					row.style.display = "flex";
+					row.style.gap = "12px";
+					row.style.alignItems = "center";
+					row.style.padding = "8px 6px";
+					row.style.borderRadius = "6px";
+					row.style.background = "#fff";
+					row.style.border = "1px solid #f1f3f8";
+
+					const rInfo = document.createElement("div");
+					rInfo.style.width = "260px";
+					rInfo.innerHTML = `<strong>${esc(
+						r.name
+					)}</strong> <span class="muted">&lt;${esc(r.email)}&gt;</span>`;
+
+					const assArea = document.createElement("div");
+					assArea.style.display = "flex";
+					assArea.style.flexWrap = "wrap";
+					assArea.style.gap = "6px";
+
+					const assignedForThis = assignments[r.id] ?? [];
+
+					// render assigned template chips with remove button
+					if (!assignedForThis.length) {
+						assArea.innerHTML =
+							'<span class="muted">No templates assigned</span>';
+					} else {
+						assignedForThis.forEach((tid) => {
+							const tpl = templates.find((x) => x.id === tid);
+							const chip = document.createElement("div");
+							chip.style.padding = "6px 8px";
+							chip.style.borderRadius = "12px";
+							chip.style.background = "#f2f6ff";
+							chip.style.border = "1px solid #dbe8ff";
+							chip.style.display = "inline-flex";
+							chip.style.alignItems = "center";
+							chip.innerHTML = `<span style="font-size:13px">${esc(
+								tpl ? tpl.name : tid
+							)}</span>`;
+							// remove button
+							const rem = document.createElement("button");
+							rem.textContent = "✕";
+							rem.style.marginLeft = "8px";
+							rem.style.border = "none";
+							rem.style.background = "transparent";
+							rem.style.cursor = "pointer";
+							rem.title = "Remove assignment";
+							rem.addEventListener("click", () => {
+								assignments[r.id] = (assignments[r.id] || []).filter(
+									(x) => x !== tid
+								);
+								if (!assignments[r.id].length) delete assignments[r.id];
+								saveAssignments(assignments);
+								renderAssignmentsUI();
+							});
+							chip.appendChild(rem);
+							assArea.appendChild(chip);
+						});
+					}
+
+					// Make the entire row clickable to assign currently-selected templates
+					row.addEventListener("click", (ev) => {
+						// ignore clicks on remove buttons (they have button tag)
+						if (ev.target.tagName.toLowerCase() === "button") return;
+						if (!selectedTemplateIds.size) {
+							// no templates toggled: toggle display of details (noop for now)
+							return;
+						}
+						// assign/toggle selected template(s) for this recipient
+						const toAssign = Array.from(selectedTemplateIds);
+						assignments[r.id] = assignments[r.id] || [];
+						toAssign.forEach((tid) => {
+							// toggle presence: if present -> remove, else add
+							if (assignments[r.id].includes(tid)) {
+								assignments[r.id] = assignments[r.id].filter((x) => x !== tid);
+							} else {
+								assignments[r.id].push(tid);
+							}
+						});
+						// cleanup empty arrays
+						if (!assignments[r.id].length) delete assignments[r.id];
+						saveAssignments(assignments);
+						renderAssignmentsUI();
+					});
+
+					row.appendChild(rInfo);
+					row.appendChild(assArea);
+					assignArea.appendChild(row);
+				});
+
+				// Add a "Prepare send payload" button
+				const payloadBtn = document.createElement("button");
+				payloadBtn.textContent = "Prepare send payload (show mapping)";
+				payloadBtn.style.marginTop = "12px";
+				payloadBtn.addEventListener("click", () => {
+					const mapping = {};
+					const recipientsNow = readSelectedRecipientsFromDOM();
+					recipientsNow.forEach((r) => {
+						mapping[r.email] = assignments[r.id] ?? [];
+					});
+					// show mapping as pretty JSON in a modal-ish overlay
+					const overlay = document.createElement("div");
+					overlay.style.position = "fixed";
+					overlay.style.left = 0;
+					overlay.style.top = 0;
+					overlay.style.right = 0;
+					overlay.style.bottom = 0;
+					overlay.style.background = "rgba(0,0,0,0.35)";
+					overlay.style.display = "flex";
+					overlay.style.alignItems = "center";
+					overlay.style.justifyContent = "center";
+					const box = document.createElement("pre");
+					box.style.background = "#fff";
+					box.style.padding = "18px";
+					box.style.borderRadius = "8px";
+					box.style.maxWidth = "90%";
+					box.style.maxHeight = "80%";
+					box.style.overflow = "auto";
+					box.textContent = JSON.stringify(mapping, null, 2);
+					const close = document.createElement("button");
+					close.textContent = "Close";
+					close.style.display = "block";
+					close.style.marginTop = "12px";
+					close.addEventListener("click", () =>
+						document.body.removeChild(overlay)
+					);
+					box.appendChild(close);
+					overlay.appendChild(box);
+					document.body.appendChild(overlay);
+				});
+				assignArea.appendChild(payloadBtn);
+			}
+
+			// Control handlers
+			refreshBtn.addEventListener("click", () => {
+				// re-render assignments for the new selected recipients
+				renderAssignmentsUI();
+			});
+			clearAssignmentsBtn.addEventListener("click", () => {
+				if (!confirm("Clear all template assignments?")) return;
+				assignments = {};
+				saveAssignments(assignments);
+				renderAssignmentsUI();
+			});
+
+			// Observe changes to selectedList so we can re-render assignments automatically
+			const selContainer = document.getElementById("selectedList");
+			if (selContainer) {
+				const mo = new MutationObserver(() => {
+					// when selection changes, we should re-render assignment UI to reflect additions/removals
+					renderAssignmentsUI();
+				});
+				mo.observe(selContainer, { childList: true, subtree: true });
+			}
+
+			// Initial render
+			renderTemplateCards();
+			updateInstructions();
+			renderAssignmentsUI();
+		})();
 	</script>
 </html>

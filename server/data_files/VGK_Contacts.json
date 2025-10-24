@@ -1,6 +1,11 @@
 {
   "Sponsor_emails": [
     {
+      "id": "0",
+      "sponsor": "TESTING EMAIL",
+      "email": "TESTING@TESTING.TESTINGTHISISNOTREALLMFAO"
+    },
+    {
       "id": "1",
       "sponsor": "VGK - General Inquiries",
       "email": "info@vegasgoldenknights.com"

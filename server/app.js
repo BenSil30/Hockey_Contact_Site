@@ -8,7 +8,6 @@ dotenv.config();
 export default (port) => {
 	const app = express();
 
-	// basic middleware
 	app.use(express.json());
 	app.use(express.urlencoded({ extended: true }));
 
@@ -20,7 +19,6 @@ export default (port) => {
 		cookie: { secure: false } // set secure:true when using HTTPS
 	}));
 
-	// register our app routes
 	registerRoutes(app);
 
 	app.listen(port, () => console.log(`App started on port ${port}`));

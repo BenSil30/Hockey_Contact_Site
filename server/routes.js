@@ -125,4 +125,7 @@ export default (app) => {
 		}
 	})
 
+	app.post("api/send_messages", async (req, res) => {
+		if (!req.session.tokens) return res.status(401).send({ error: "Not authorized"});
+	)};
 };

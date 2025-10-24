@@ -1,0 +1,14 @@
+{
+	"Email_Templates":[
+		{
+			"id":"1",
+			"name":"template 1",
+			"description":"this is test template 1"
+		},
+		{
+			"id":"2",
+			"name":"template 2",
+			"description":"this is test template 2"
+		}
+	]
+}

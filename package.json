@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "googleapis": "^164.1.0",
+    "nodemon": "^3.1.10",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
+  },
+  "scripts": {
+    "start": "node ./server/index.js",
+    "dev": "nodemon --watch server --experimental-specifier-resolution=node --es-module-specifier-resolution=node server/index.js"
+  }
+}

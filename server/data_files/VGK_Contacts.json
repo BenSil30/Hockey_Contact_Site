@@ -1,0 +1,264 @@
+{
+  "Sponsor_emails": [
+    {
+      "id": "1",
+      "sponsor": "VGK - General Inquiries",
+      "email": "info@vegasgoldenknights.com"
+    },
+    {
+      "id": "2",
+      "sponsor": "VGK - Communications",
+      "email": "communications@vegasgoldenknights.com"
+    },
+    {
+      "id": "3",
+      "sponsor": "VGK - Bill Foley, Owner and CEO",
+      "email": "bfoley@vegasgoldenknights.com"
+    },
+    {
+      "id": "4",
+      "sponsor": "VGK - George McPhee, President of Hockey Operations and Alt. Governor",
+      "email": "gmcphee@vegasgoldenknights.com"
+    },
+    {
+      "id": "5",
+      "sponsor": "VGK - Kelly McCrimmon, General Manager",
+      "email": "kmccrimmon@vegasgoldenknights.com"
+    },
+    {
+      "id": "6",
+      "sponsor": "VGK - Vaughn Karpan, Assistant General Manager, Player Personnel",
+      "email": "vkarpan@vegasgoldenknights.com"
+    },
+    {
+      "id": "7",
+      "sponsor": "VGK - Andrew Lugerner, Assistant General Manager",
+      "email": "alugerner@vegasgoldenknights.com"
+    },
+    {
+      "id": "8",
+      "sponsor": "VGK - Bruce Cassidy, Head Coach",
+      "email": "bcassidy@vegasgoldenknights.com"
+    },
+    {
+      "id": "9",
+      "sponsor": "Anheuser-Busch",
+      "email": "media@anheuser-busch.com"
+    },
+    {
+      "id": "10",
+      "sponsor": "Atomic Golf",
+      "email": "support@atomicgolf.com"
+    },
+    {
+      "id": "11",
+      "sponsor": "bake the Cookie Shoppe - General Inquiries",
+      "email": "info@bakethecookieshoppe.com"
+    },
+    {
+      "id": "12",
+      "sponsor": "bake the Cookie Shoppe - Corporate",
+      "email": "corporate@bakethecookieshoppe.com"
+    },
+    {
+      "id": "13",
+      "sponsor": "Battle Born Steel",
+      "email": "info@battlebornsteel.com"
+    },
+    {
+      "id": "14",
+      "sponsor": "BDA - Customer Relations",
+      "email": "customerrelations@bdainc.com"
+    },
+    {
+      "id": "15",
+      "sponsor": "BDA - Jay Deutsch, CEO and Co-Founder",
+      "email": "jay@bdainc.com"
+    },
+    {
+      "id": "16",
+      "sponsor": "BDA - Steve Avanessian, Executive Vice President",
+      "email": "stevea@bdainc.com"
+    },
+    {
+      "id": "17",
+      "sponsor": "BDA - Rob Martin, Chief Experience Officer",
+      "email": "robm@bdainc.com"
+    },
+    {
+      "id": "18",
+      "sponsor": "Cooper Roofing",
+      "email": "info@coopersolar.com"
+    },
+    {
+      "id": "19",
+      "sponsor": "Drai’s Las Vegas",
+      "email": "info@draislv.com"
+    },
+    {
+      "id": "20",
+      "sponsor": "Idegy - General Inquiries",
+      "email": "info@idegy.com"
+    },
+    {
+      "id": "21",
+      "sponsor": "Idegy - Matthew Grossman, Founder and CEO",
+      "email": "matthew@idegy.com"
+    },
+    {
+      "id": "22",
+      "sponsor": "Idegy - Antoinetta Mackenzie, Vice President, Marketing and Operations",
+      "email": "antonietta@idegy.com"
+    },
+    {
+      "id": "23",
+      "sponsor": "Jack Daniels - General Inquiries",
+      "email": "brown-forman@b-f.com"
+    },
+    {
+      "id": "24",
+      "sponsor": "Jack Daniels - Elizabeth Conway, Director, Corporate Brand and External Communications, Brown-Forman",
+      "email": "elizabeth_conway@b-f.com"
+    },
+    {
+      "id": "25",
+      "sponsor": "Jack Daniels - Svend Jansen, Global Public Relations Director, Brown-Forman",
+      "email": "svend_jansen@b-f.com"
+    },
+    {
+      "id": "26",
+      "sponsor": "Jack Daniels - Ashley Schaffner Fletcher, Jack Daniel Distillery Public Relations, Brown-Forman",
+      "email": "ashley_schaffner_fletcher@b-f.com"
+    },
+    {
+      "id": "27",
+      "sponsor": "Jack Daniels - Global Community Relations",
+      "email": "bfmediarelations@b-f.com"
+    },
+    {
+      "id": "28",
+      "sponsor": "Jack Daniels - Alcohol Responsibility",
+      "email": "Alcohol_Responsibility@b-f.com"
+    },
+    {
+      "id": "29",
+      "sponsor": "Las Vegas Review-Journal - News Tips",
+      "email": "newstips@reviewjournal.com"
+    },
+    {
+      "id": "30",
+      "sponsor": "Las Vegas Review-Journal - J. Keith Moyer, Publisher and Editor",
+      "email": "kmoyer@reviewjournal.com"
+    },
+    {
+      "id": "31",
+      "sponsor": "Las Vegas Review-Journal - Glenn Cook, Executive Editor",
+      "email": "gcook@reviewjournal.com"
+    },
+    {
+      "id": "32",
+      "sponsor": "Las Vegas Review-Journal - Allen Leiker, Sports Editor",
+      "email": "aleiker@reviewjournal.com"
+    },
+    {
+      "id": "33",
+      "sponsor": "Las Vegas Review-Journal - Danny Webster, Reporter: Golden Knights",
+      "email": "dwebster@reviewjournal.com"
+    },
+    {
+      "id": "34",
+      "sponsor": "Nevada Donor Network - General Inquiries",
+      "email": "info@nvdonor.org"
+    },
+    {
+      "id": "35",
+      "sponsor": "Nevada Donor Network - Joseph Ferreira, President & Chief Executive Officer",
+      "email": "JFerreira@nvdonor.org"
+    },
+    {
+      "id": "36",
+      "sponsor": "Nevada Donor Network - Jason Mahfood, Executive Vice President & Chief Financial Officer",
+      "email": "Jmahfood@nvdonor.org"
+    },
+    {
+      "id": "37",
+      "sponsor": "Nevada Donor Network - Tyre Gray, Chief Administrative and Legal Officer",
+      "email": "tgray@nvdonor.org"
+    },
+    {
+      "id": "38",
+      "sponsor": "Nevada Donor Network - Miles Lanning, Chief Quality Officer",
+      "email": "mlanning@nvdonor.org"
+    },
+    {
+      "id": "39",
+      "sponsor": "Nevada Donor Network - Gordon Prouty, Foundation President",
+      "email": "gprouty@nvdonor.org"
+    },
+    {
+      "id": "40",
+      "sponsor": "Nevada Donor Network - Sara Levinson, Vice President of People, Culture + Development",
+      "email": "slevinson@nvdonor.org"
+    },
+    {
+      "id": "41",
+      "sponsor": "Pawsh Palace",
+      "email": "dm@pawshpalacelv.com"
+    },
+    {
+      "id": "42",
+      "sponsor": "Pinkbox Donuts - General Inquiries",
+      "email": "contact@pinkboxdoughnuts.com"
+    },
+    {
+      "id": "43",
+      "sponsor": "Pinkbox Donuts - Customer Service",
+      "email": "customerservice@pinkboxdoughnuts.com"
+    },
+    {
+      "id": "44",
+      "sponsor": "Richard Harris Law",
+      "email": "info@richardharrislaw.com"
+    },
+    {
+      "id": "45",
+      "sponsor": "Tiger Lily Flower Shop",
+      "email": "info@tigerlily.com"
+    },
+    {
+      "id": "46",
+      "sponsor": "The Venetian Resort Las Vegas - General Inquiries",
+      "email": "TheVenetian@kirvindoak.com"
+    },
+    {
+      "id": "47",
+      "sponsor": "The Venetian Resort Las Vegas - Anna Schmid, Vice President - Communications & CSR",
+      "email": "anna.schmid@venetianlasvegas.com"
+    },
+    {
+      "id": "48",
+      "sponsor": "SafeNest - General Inquiries",
+      "email": "info@safenest.org"
+    },
+    {
+      "id": "49",
+      "sponsor": "SafeNest - Liz Ortenburger, Chief Executive Officer",
+      "email": "lizortenburger@safenest.org"
+    },
+    {
+      "id": "50",
+      "sponsor": "SafeNest - Angela Reyes, Chief Program Officer",
+      "email": "angelareyes@safenest.org"
+    },
+    {
+      "id": "51",
+      "sponsor": "SafeNest - Linda Bridges, Chief Marketing and Communications Officer",
+      "email": "lindabridges@safenest.org"
+    },
+    {
+      "id": "52",
+      "sponsor": "SafeNest - Yesenia Mata, Director of Criminal and Civil Justice Advocacy",
+      "email": "yeseniamata@safenest.org"
+    }
+  ]
+}

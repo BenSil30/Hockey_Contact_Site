@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<>
+<head>
+	<meta charset="utf-8" />
+	<title>Inbox Sender</title>
+	<style>
+		body {
+			font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+			padding: 18px;
+			max-width: 900px;
+			margin: auto;
+		}
+		.search-wrap {
+			position: relative;
+			max-width: 640px;
+		}
+		#search {
+			width: 100%;
+			padding: 10px;
+			font-size: 16px;
+			box-sizing: border-box;
+		}
+		.dropdown {
+			position: absolute;
+			left: 0;
+			right: 0;
+			top: calc(100% + 6px);
+			background: white;
+			border: 1px solid #ddd;
+			box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+			max-height: 280px;
+			overflow: auto;
+			z-index: 20;
+		}
+		.item {
+			padding: 10px;
+			border-bottom: 1px solid #f0f0f0;
+			cursor: pointer;
+		}
+		.item:hover,
+		.item.active {
+			background: #f7faff;
+		}
+		.muted {
+			color: #666;
+			font-size: 13px;
+		}
+		.selected-list {
+			margin-top: 24px;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			max-width: 640px;
+		}
+		.chip {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			background: #f2f6ff;
+			padding: 8px 10px;
+			border-radius: 12px;
+		}
+		.chip .meta {
+			font-size: 14px;
+		}
+		.chip button {
+			margin-left: auto;
+			background: transparent;
+			border: 0;
+			cursor: pointer;
+			color: #c00;
+			font-weight: 600;
+		}
+		.no-results {
+			padding: 12px;
+			color: #666;
+		}
+	</style>
+</head>
+<html>
+	<h1>Hockey Contact Form</h1>
+	<button id="logout">Log out</button>
+
+	<h1>Pick emails</h1>
+	<p>Search the list of emails and add recipients to your selection.</p>
+
+	<div class="search-wrap" aria-haspopup="listbox">
+		<input
+			id="search"
+			placeholder="Search by name, email, or subject..."
+			aria-label="Search emails"
+			autocomplete="off"
+		/>
+		<div id="dropdown" class="dropdown" role="listbox" hidden></div>
+	</div>
+
+	<div class="selected-list" id="selectedList" aria-live="polite"></div>
+
+	<h1>Pick templates</h1>
+	<p>Pick a template to send from</p>
+	<script>
+		// 		async function loadEmails() {
+		// 			const res = await fetch("/api/emails");
+		// 			if (!res.ok) {
+		// 				document.getElementById("emails").innerText =
+		// 					"Failed to load emails (are you logged in?)";
+		// 				return;
+		// 			}
+		// 			const emails = await res.json();
+		// 			const container = document.getElementById("emails");
+		// 			if (!emails.length) {
+		// 				container.innerText = "No recent emails";
+		// 				return;
+		// 			}
+		// 			container.innerHTML = emails
+		// 				.map(
+		// 					(e) => `
+		// <div>
+		//   <strong>${e.subject || "(no subject)"}</strong><br>
+		//   <em>${e.from}</em><br>
+		//   <small>${e.snippet}</small><br>
+		//   <button data-id="${e.id}" class="sendBtn">Send template to sender</button>
+		// </div><hr>`
+		// 				)
+		// 				.join("");
+
+		// 			document.querySelectorAll(".sendBtn").forEach((btn) => {
+		// 				btn.addEventListener("click", async (ev) => {
+		// 					const picked = document.querySelector(
+		// 						'input[name="template"]:checked'
+		// 					);
+		// 					if (!picked) return alert("Pick a template first");
+		// 					const templateId = picked.value;
+		// 					document.getElementById("status").innerText = "Sending...";
+		// 					const sendRes = await fetch("/api/send", {
+		// 						method: "POST",
+		// 						headers: { "Content-Type": "application/json" },
+		// 						body: JSON.stringify({ templateId }),
+		// 					});
+		// 					const data = await sendRes.json();
+		// 					if (sendRes.ok && data.success) {
+		// 						document.getElementById("status").innerText = "Sent successfully";
+		// 					} else {
+		// 						document.getElementById("status").innerText =
+		// 							"Send failed: " + (data.error || sendRes.statusText);
+		// 					}
+		// 					setTimeout(
+		// 						() => (document.getElementById("status").innerText = ""),
+		// 						3000
+		// 					);
+		// 				});
+		// 			});
+		// 		}
+
+		document
+			.getElementById("logout")
+			.addEventListener("click", () => (location.href = "/auth/logout"));
+
+		// loadEmails();
+	</script>
+
+	<script>
+		(async function () {
+			// ----- config -----
+			const API = "/api/emails";
+			const DEBOUNCE_MS = 180;
+
+			// ----- state -----
+			let emails = [];
+			let filtered = [];
+			let selected = new Map(); // id -> email object
+			let activeIndex = -1;
+
+			// ----- DOM -----
+			const input = document.getElementById("search");
+			const dropdown = document.getElementById("dropdown");
+			const selectedList = document.getElementById("selectedList");
+
+			// ----- helpers -----
+			const debounce = (fn, ms) => {
+				let t;
+				return (...args) => {
+					clearTimeout(t);
+					t = setTimeout(() => fn(...args), ms);
+				};
+			};
+
+			function renderDropdown() {
+				if (!filtered.length) {
+					dropdown.innerHTML = '<div class="no-results">No results</div>';
+					dropdown.hidden = false;
+					return;
+				}
+				dropdown.innerHTML = filtered
+					.map((e, i) => {
+						const disabled = selected.has(e.id)
+							? 'aria-disabled="true" style="opacity:.6;pointer-events:none;"'
+							: "";
+						return `
+					<div class="item" data-id="${e.id}" role="option" ${disabled}>
+						<div><strong>${escapeHtml(
+							e.sponsor
+						)}</strong> <span class="muted">&lt;${escapeHtml(
+							e.email
+						)}&gt;</span></div>
+						`;
+					})
+					.join("");
+				// add active class
+				const nodes = dropdown.querySelectorAll(".item");
+				nodes.forEach((n, i) =>
+					n.classList.toggle("active", i === activeIndex)
+				);
+				dropdown.hidden = false;
+			}
+
+			function renderSelectedList() {
+				if (selected.size === 0) {
+					selectedList.innerHTML =
+						'<div class="muted">No recipients selected yet.</div>';
+					return;
+				}
+				selectedList.innerHTML = Array.from(selected.values())
+					.map(
+						(e) => `
+				<div class="chip" data-id="${e.id}">
+					<div class="meta">
+						<strong>${escapeHtml(e.sponsor)}</strong> <span class="muted">&lt;${escapeHtml(
+							e.email
+						)}&gt;</span><br>
+						</div>
+						<button aria-label="Remove ${escapeHtml(e.name)}" data-id="${
+							e.id
+						}">Remove</button>
+						</div>
+						`
+					)
+					.join("");
+
+				// attach remove handlers
+				selectedList.querySelectorAll("button").forEach((btn) => {
+					btn.addEventListener("click", (ev) => {
+						const id = ev.currentTarget.dataset.id;
+						selected.delete(id);
+						renderSelectedList();
+						// if dropdown hidden because nothing available, refresh it
+						filterAndRender(input.value);
+					});
+				});
+			}
+
+			function escapeHtml(s = "") {
+				return String(s).replace(
+					/[&<>"']/g,
+					(ch) =>
+						({
+							"&": "&amp;",
+							"<": "&lt;",
+							">": "&gt;",
+							'"': "&quot;",
+							"'": "&#39;",
+						}[ch])
+				);
+			}
+
+			function filterAndRender(query) {
+				const q = String(query || "")
+					.trim()
+					.toLowerCase();
+				if (!q) {
+					// default: show first 20, excluding selected
+					filtered = emails.filter((e) => !selected.has(e.id)).slice(0, 20);
+				} else {
+					filtered = emails
+						.filter((e) => {
+							if (selected.has(e.id)) return false; // hide already selected
+							return (
+								(e.sponsor || "").toLowerCase().includes(q) ||
+								(e.email || "").toLowerCase().includes(q)
+							);
+						})
+						.slice(0, 50); // cap results
+				}
+				activeIndex = filtered.length ? 0 : -1;
+				renderDropdown();
+			}
+
+			// ----- keyboard nav handlers -----
+			input.addEventListener("keydown", (ev) => {
+				if (dropdown.hidden) return;
+				const nodes = dropdown.querySelectorAll(".item");
+				if (!nodes.length) return;
+				if (ev.key === "ArrowDown") {
+					ev.preventDefault();
+					activeIndex = Math.min(activeIndex + 1, nodes.length - 1);
+					nodes.forEach((n, i) =>
+						n.classList.toggle("active", i === activeIndex)
+					);
+					nodes[activeIndex].scrollIntoView({ block: "nearest" });
+				} else if (ev.key === "ArrowUp") {
+					ev.preventDefault();
+					activeIndex = Math.max(activeIndex - 1, 0);
+					nodes.forEach((n, i) =>
+						n.classList.toggle("active", i === activeIndex)
+					);
+					nodes[activeIndex].scrollIntoView({ block: "nearest" });
+				} else if (ev.key === "Enter") {
+					ev.preventDefault();
+					if (activeIndex >= 0 && activeIndex < filtered.length) {
+						pickEmail(filtered[activeIndex].id);
+					}
+				} else if (ev.key === "Escape") {
+					dropdown.hidden = true;
+				}
+			});
+
+			// ----- click to pick -----
+			dropdown.addEventListener("click", (ev) => {
+				const item = ev.target.closest(".item");
+				if (!item) return;
+				const id = item.dataset.id;
+				if (id) pickEmail(id);
+			});
+
+			function pickEmail(id) {
+				const e = emails.find((x) => x.id === id);
+				if (!e) return;
+				if (selected.has(e.id)) return; // should not happen because we hide selected in dropdown
+				selected.set(e.id, e);
+				renderSelectedList();
+				input.value = "";
+				dropdown.hidden = true;
+			}
+
+			// ----- blur behavior: close dropdown after small delay so click registers -----
+			input.addEventListener("blur", () =>
+				setTimeout(() => {
+					dropdown.hidden = true;
+				}, 150)
+			);
+			input.addEventListener("focus", () => {
+				filterAndRender(input.value);
+			});
+
+			// ----- search with debounce -----
+			const debouncedFilter = debounce(
+				(val) => filterAndRender(val),
+				DEBOUNCE_MS
+			);
+			input.addEventListener("input", (ev) => {
+				debouncedFilter(ev.target.value);
+			});
+
+			// ----- load emails from server -----
+			try {
+				const resp = await fetch(API);
+				if (!resp.ok) throw new Error("fetch failed: " + resp.status);
+				data = await resp.json();
+				emails = data.Sponsor_emails;
+			} catch (err) {
+				console.error("Could not load emails:", err);
+				dropdown.innerHTML =
+					'<div class="no-results">Failed to load emails. Try reloading the page.</div>';
+				dropdown.hidden = false;
+				return;
+			}
+
+			// initial render
+			renderSelectedList();
+			filterAndRender("");
+		})();
+	</script>
+
+	<script>
+		// ----- config -----
+		const API = "/api/email_templates";
+		const DEBOUNCE_MS = 180;
+
+		// ----- state -----
+		let emails = [];
+		let filtered = [];
+		let selected = new Map(); // id -> email object
+		let activeIndex = -1;
+
+		// ----- DOM -----
+		const input = document.getElementById("template_search");
+		const dropdown = document.getElementById("template_dropdown");
+		const selectedList = document.getElementById("template_selectedList");
+	</script>
+</html>

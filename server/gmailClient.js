@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const SCOPES = [
-	"https://www.googleapis.com/auth/gmail.readonly",
 	"https://www.googleapis.com/auth/gmail.send"
 ];
 

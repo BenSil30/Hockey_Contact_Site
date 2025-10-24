@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<>
 <head>
 	<meta charset="utf-8" />
-	<title>Inbox Sender</title>
+	<title>Hockey Contact Form</title>
 	<style>
 		body {
 			font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
@@ -243,9 +242,8 @@
 					btn.addEventListener("click", (ev) => {
 						const id = ev.currentTarget.dataset.id;
 						selected.delete(id);
-						renderSelectedList();
-						// if dropdown hidden because nothing available, refresh it
-						filterAndRender(input.value);
+						// renderSelectedList();
+						// filterAndRender(input.value);
 					});
 				});
 			}
@@ -392,23 +390,23 @@
 				return;
 			}
 
-			const tplControls = document.createElement("div");
-			tplControls.style.margin = "8px";
-			tplControls.style.display = "flex";
-			tplControls.style.flexDirection = "column";
-			tplControls.style.gap = "12px";
+			const templateControls = document.createElement("div");
+			templateControls.style.margin = "8px";
+			templateControls.style.display = "flex";
+			templateControls.style.flexDirection = "column";
+			templateControls.style.gap = "12px";
 
-			const chipArea = document.createElement("div");
-			chipArea.style.display = "flex";
-			chipArea.style.flexWrap = "wrap";
-			chipArea.style.gap = "8";
-			chipArea.setAttribute("aria-label", "Template List");
+			const cardArea = document.createElement("div");
+			cardArea.style.display = "flex";
+			cardArea.style.flexWrap = "wrap";
+			cardArea.style.gap = "8";
+			cardArea.setAttribute("aria-label", "Template List");
 
 			// Instruction / mode indicator
-			const instr = document.createElement('div');
-			instr.style.fontSize = "13px";
-			instr.style.color = "#333";
-			instr.innerText =
+			const instructions = document.createElement('div');
+			instructions.style.fontSize = "13px";
+			instructions.style.color = "#333";
+			instructions.innerText =
 				"Select template chips (click) to choose template(s). Then click a selected recipient below to assign.";
 
 			// Assignment matrix / selected emails list
@@ -417,6 +415,7 @@
 			assignArea.style.flexDirection = "column";
 			assignArea.style.gap = "8px";
 			assignArea.style.marginTop = "8px";
+			assignArea.style.cursor = "pointer";
 
 			const controlsRow = document.createElement("div");
 			controlsRow.style.display = "flex";
@@ -434,14 +433,14 @@
 			controlsRow.appendChild(refreshBtn);
 			controlsRow.appendChild(clearAssignmentsBtn);
 
-			tplControls.appendChild(instr);
-			tplControls.appendChild(chipArea);
-			tplControls.appendChild(controlsRow);
-			tplControls.appendChild(assignArea);
+			templateControls.appendChild(instructions);
+			templateControls.appendChild(cardArea);
+			templateControls.appendChild(controlsRow);
+			templateControls.appendChild(assignArea);
 
 			// Replace current templates content with our controls (preserving loading text)
 			templatesRoot.innerHTML = "";
-			templatesRoot.appendChild(tplControls);
+			templatesRoot.appendChild(templateControls);
 
 			// Utility: escape
 			const esc = (s = "") =>
@@ -464,7 +463,7 @@
 				templates = data.Email_Templates;
 			} catch (err) {
 				console.error("Could not load templates:", err);
-				chipArea.innerHTML =
+				cardArea.innerHTML =
 					'<div class="muted">Failed to load templates.</div>';
 				return;
 			}
@@ -472,7 +471,7 @@
 			let selectedTemplateIds = new Set();
 
 			function renderTemplateCards() {
-				chipArea.innerHTML = "";
+				cardArea.innerHTML = "";
 				templates.forEach((t) => {
 					const chip = document.createElement("button");
 					chip.className = "tpl-chip";
@@ -498,20 +497,20 @@
 					});
 					// tooltip / preview on hover
 					chip.title = t.name ? t.name.substring(0, 500) : "";
-					chipArea.appendChild(chip);
+					cardArea.appendChild(chip);
 				});
 			}
 
 			function updateInstructions() {
 				if (!selectedTemplateIds.size) {
-					instr.innerText =
+					instructions.innerText =
 						"Click template chips to select template(s). Then click a recipient below to assign.";
 				} else if (selectedTemplateIds.size == 1) {
-					instr.innerText = `Template selected (${
+					instructions.innerText = `Template selected (${
 						Array.from(selectedTemplateIds)[0]
 					}). Click a recipient to assign / toggle it.`;
 				} else {
-					instr.innerText = `${selectedTemplateIds.size} templates selected. Click a recipient to assign / toggle them.`;
+					instructions.innerText = `${selectedTemplateIds.size} templates selected. Click a recipient to assign / toggle them.`;
 				}
 			}
 

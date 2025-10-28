@@ -96,70 +96,14 @@
 	<div class="selected-list" id="selectedList" aria-live="polite"></div>
 
 	<h1>Pick templates</h1>
-	<p>Pick a template to send from</p>
 	<div id="templates"></div>
+
+	<button id="sendAssignments">Send assignments</button>
+
 	<script>
-		// 		async function loadEmails() {
-		// 			const res = await fetch("/api/emails");
-		// 			if (!res.ok) {
-		// 				document.getElementById("emails").innerText =
-		// 					"Failed to load emails (are you logged in?)";
-		// 				return;
-		// 			}
-		// 			const emails = await res.json();
-		// 			const container = document.getElementById("emails");
-		// 			if (!emails.length) {
-		// 				container.innerText = "No recent emails";
-		// 				return;
-		// 			}
-		// 			container.innerHTML = emails
-		// 				.map(
-		// 					(e) => `
-		// <div>
-		//   <strong>${e.subject || "(no subject)"}</strong><br>
-		//   <em>${e.from}</em><br>
-		//   <small>${e.snippet}</small><br>
-		//   <button data-id="${e.id}" class="sendBtn">Send template to sender</button>
-		// </div><hr>`
-		// 				)
-		// 				.join("");
-
-		// 			document.querySelectorAll(".sendBtn").forEach((btn) => {
-		// 				btn.addEventListener("click", async (ev) => {
-		// 					const picked = document.querySelector(
-		// 						'input[name="template"]:checked'
-		// 					);
-		// 					if (!picked) return alert("Pick a template first");
-		// 					const templateId = picked.value;
-		// 					document.getElementById("status").innerText = "Sending...";
-		// 					const sendRes = await fetch("/api/send", {
-		// 						method: "POST",
-		// 						headers: { "Content-Type": "application/json" },
-		// 						body: JSON.stringify({ templateId }),
-		// 					});
-		// 					const data = await sendRes.json();
-		// 					if (sendRes.ok && data.success) {
-		// 						document.getElementById("status").innerText = "Sent successfully";
-		// 					} else {
-		// 						document.getElementById("status").innerText =
-		// 							"Send failed: " + (data.error || sendRes.statusText);
-		// 					}
-		// 					setTimeout(
-		// 						() => (document.getElementById("status").innerText = ""),
-		// 						3000
-		// 					);
-		// 				});
-		// 			});
-		// 		}
-
 		document
 			.getElementById("logout")
 			.addEventListener("click", () => (location.href = "/auth/logout"));
-
-		// loadEmails();
-	</script>
-
-	<script>
 		(async function () {
 			// ----- config -----
 			const API = "/api/emails";
@@ -197,16 +141,13 @@
 							? 'aria-disabled="true" style="opacity:.6;pointer-events:none;"'
 							: "";
 						return `
-					<div class="item" data-id="${e.id}" role="option" ${disabled}>
-						<div><strong>${escapeHtml(
-							e.sponsor
-						)}</strong> <span class="muted">&lt;${escapeHtml(
-							e.email
-						)}&gt;</span></div>
+							<div class="item" data-id="${e.id}" role="option" ${disabled}>
+								<strong>${escapeHtml(e.sponsor)}</strong>
+								<span class="muted">&lt;${escapeHtml(e.email)}&gt;</span>
+							</div>
 						`;
 					})
 					.join("");
-				// add active class
 				const nodes = dropdown.querySelectorAll(".item");
 				nodes.forEach((n, i) =>
 					n.classList.toggle("active", i === activeIndex)
@@ -237,12 +178,11 @@
 					)
 					.join("");
 
-				// attach remove handlers
 				selectedList.querySelectorAll("button").forEach((btn) => {
 					btn.addEventListener("click", (ev) => {
 						const id = ev.currentTarget.dataset.id;
 						selected.delete(id);
-						// renderSelectedList();
+						renderSelectedList();
 						// filterAndRender(input.value);
 					});
 				});
@@ -402,14 +342,14 @@
 			cardArea.style.gap = "8";
 			cardArea.setAttribute("aria-label", "Template List");
 
-			// Instruction / mode indicator
-			const instructions = document.createElement('div');
+			// Instructions
+			const instructions = document.createElement("div");
 			instructions.style.fontSize = "13px";
 			instructions.style.color = "#333";
 			instructions.innerText =
 				"Select template chips (click) to choose template(s). Then click a selected recipient below to assign.";
 
-			// Assignment matrix / selected emails list
+			// selected emails list
 			const assignArea = document.createElement("div");
 			assignArea.style.display = "flex";
 			assignArea.style.flexDirection = "column";
@@ -438,11 +378,10 @@
 			templateControls.appendChild(controlsRow);
 			templateControls.appendChild(assignArea);
 
-			// Replace current templates content with our controls (preserving loading text)
 			templatesRoot.innerHTML = "";
 			templatesRoot.appendChild(templateControls);
 
-			// Utility: escape
+			//  escape utility
 			const esc = (s = "") =>
 				String(s).replace(
 					/[&<>"']/g,
@@ -468,7 +407,7 @@
 				return;
 			}
 
-			let selectedTemplateIds = new Set();
+			let selectedTemplateId = -1;
 
 			function renderTemplateCards() {
 				cardArea.innerHTML = "";
@@ -483,38 +422,33 @@
 					chip.style.cursor = "pointer";
 					chip.style.fontSize = "13px";
 					chip.innerHTML = `<strong>${esc(t.name)}</strong>`;
-					if (selectedTemplateIds.has(t.id)) {
+					if (selectedTemplateId == t.id) {
 						chip.style.boxShadow = "0 0 0 3px rgba(58,108,255,0.12)";
 						chip.style.background = "#eaf0ff";
 					}
 					chip.addEventListener("click", (ev) => {
 						ev.preventDefault();
 						const id = chip.dataset.tplId;
-						if (selectedTemplateIds.has(id)) selectedTemplateIds.delete(id);
-						else selectedTemplateIds.add(id);
+						if (selectedTemplateId == id) selectedTemplateId = -1;
+						else selectedTemplateId = id;
 						renderTemplateCards();
 						updateInstructions();
 					});
-					// tooltip / preview on hover
 					chip.title = t.name ? t.name.substring(0, 500) : "";
 					cardArea.appendChild(chip);
 				});
 			}
 
 			function updateInstructions() {
-				if (!selectedTemplateIds.size) {
+				if (selectedTemplateId == -1) {
 					instructions.innerText =
 						"Click template chips to select template(s). Then click a recipient below to assign.";
-				} else if (selectedTemplateIds.size == 1) {
-					instructions.innerText = `Template selected (${
-						Array.from(selectedTemplateIds)[0]
-					}). Click a recipient to assign / toggle it.`;
-				} else {
-					instructions.innerText = `${selectedTemplateIds.size} templates selected. Click a recipient to assign / toggle them.`;
+				} else if (selectedTemplateId > -1) {
+					instructions.innerText = `Template selected (${selectedTemplateId}). Click a recipient to assign / toggle it.`;
 				}
 			}
 
-			// Assignments storage: map of emailId -> array of templateIds (persisted)
+			// Assignments storage (local): map of emailId -> array of templateIds (persisted)
 			const STORAGE_KEY = "email_template_assignments_v1";
 			function loadAssignments() {
 				try {
@@ -529,10 +463,9 @@
 				localStorage.setItem(STORAGE_KEY, JSON.stringify(obj || {}));
 			}
 
-			let assignments = loadAssignments(); // plain object
+			let assignments = loadAssignments(); 
 
 			// Helper: read selected recipients directly from DOM (existing selected chips)
-			// selectedList is the container used previously in your UI (id="selectedList")
 			function readSelectedRecipientsFromDOM() {
 				const container = document.getElementById("selectedList");
 				if (!container) return [];
@@ -541,21 +474,18 @@
 				const out = [];
 				chips.forEach((ch) => {
 					const id = ch.dataset.id;
-					// find name/email text inside
 					const name = ch.querySelector(".meta strong")
 						? ch.querySelector(".meta strong").innerText
 						: "";
 					const emailMatch = ch.querySelector(".meta .muted")
 						? ch.querySelector(".meta .muted").innerText
 						: "";
-					// clean emailMatch remove <> if present
 					const email = emailMatch.replace(/[<>]/g, "").trim();
 					out.push({ id, name, email });
 				});
 				return out;
 			}
 
-			// Render assignment area: a list of selected recipients with their assigned templates
 			function renderAssignmentsUI() {
 				assignArea.innerHTML = "";
 				const recipients = readSelectedRecipientsFromDOM();
@@ -614,7 +544,6 @@
 							chip.innerHTML = `<span style="font-size:13px">${esc(
 								tpl ? tpl.name : tid
 							)}</span>`;
-							// remove button
 							const rem = document.createElement("button");
 							rem.textContent = "✕";
 							rem.style.marginLeft = "8px";
@@ -635,25 +564,28 @@
 						});
 					}
 
-					// Make the entire row clickable to assign currently-selected templates
+					// !todo: restrict if people can send "conflicting" emails for the same cause to the same person (you can send an email protesting hart and quenneville to the same person, but not two hart to the same person)
+					// Make the entire row clickable to assign currently-selected template
 					row.addEventListener("click", (ev) => {
 						// ignore clicks on remove buttons (they have button tag)
 						if (ev.target.tagName.toLowerCase() === "button") return;
-						if (!selectedTemplateIds.size) {
-							// no templates toggled: toggle display of details (noop for now)
+						if (selectedTemplateId == -1) {
 							return;
 						}
-						// assign/toggle selected template(s) for this recipient
-						const toAssign = Array.from(selectedTemplateIds);
-						assignments[r.id] = assignments[r.id] || [];
-						toAssign.forEach((tid) => {
-							// toggle presence: if present -> remove, else add
-							if (assignments[r.id].includes(tid)) {
-								assignments[r.id] = assignments[r.id].filter((x) => x !== tid);
-							} else {
-								assignments[r.id].push(tid);
-							}
-						});
+						// this enables multiple assignments per recipient, we want to disable it for now
+						// assign/toggle selected template for this recipient
+						// assignments[r.id] = assignments[r.id] || [];
+
+						// if (assignments[r.id].includes(selectedTemplateId)) {
+						// 	// remove assignment
+						// 	assignments[r.id] = assignments[r.id].filter((x) => x !== selectedTemplateId);
+						// } else {
+						// 	// add assignment
+						// 	assignments[r.id].push(selectedTemplateId);
+						// }
+						assignments[r.id] = [];
+						assignments[r.id].push(selectedTemplateId);
+
 						// cleanup empty arrays
 						if (!assignments[r.id].length) delete assignments[r.id];
 						saveAssignments(assignments);
@@ -665,7 +597,6 @@
 					assignArea.appendChild(row);
 				});
 
-				// Add a "Prepare send payload" button
 				const payloadBtn = document.createElement("button");
 				payloadBtn.textContent = "Prepare send payload (show mapping)";
 				payloadBtn.style.marginTop = "12px";
@@ -708,9 +639,8 @@
 				assignArea.appendChild(payloadBtn);
 			}
 
-			// Control handlers
 			refreshBtn.addEventListener("click", () => {
-				// re-render assignments for the new selected recipients
+				// have to re-render here bc of new recipients
 				renderAssignmentsUI();
 			});
 			clearAssignmentsBtn.addEventListener("click", () => {
@@ -720,20 +650,98 @@
 				renderAssignmentsUI();
 			});
 
-			// Observe changes to selectedList so we can re-render assignments automatically
+			// 👀 changes for re-render
 			const selContainer = document.getElementById("selectedList");
 			if (selContainer) {
 				const mo = new MutationObserver(() => {
-					// when selection changes, we should re-render assignment UI to reflect additions/removals
 					renderAssignmentsUI();
 				});
 				mo.observe(selContainer, { childList: true, subtree: true });
 			}
 
-			// Initial render
 			renderTemplateCards();
 			updateInstructions();
 			renderAssignmentsUI();
 		})();
+	</script>
+
+	<script>
+		async function sendAssignmentsToServer() {
+			const assignments_file = "email_template_assignments_v1";
+			const raw = localStorage.getItem(assignments_file);
+			if (!raw) return alert("No assignments found in localStorage.");
+
+			let assignments = {};
+			try {
+				assignments = JSON.parse(raw); 
+			} catch (e) {
+				return alert("Saved assignments malformed.");
+			}
+
+			const selectedContainer = document.getElementById("selectedList");
+			const idToEmail = {};
+			if (selectedContainer) {
+				selectedContainer.querySelectorAll(".chip[data-id]").forEach((chip) => {
+					const id = chip.dataset.id;
+					// metadata formatting: <strong>Name</strong> <span class="muted">&lt;email&gt;</span>
+					const muted = chip.querySelector(".meta .muted");
+					const emailText = muted
+						? muted.textContent.replace(/[<>]/g, "").trim()
+						: null;
+					if (id && emailText) idToEmail[id] = emailText;
+				});
+			}
+
+			// server expects: { assignments: { "email": ["tpl1","tpl2"], ... } }
+			const payload = { assignments: {} };
+			for (const [id, tplIds] of Object.entries(assignments)) {
+				const email = idToEmail[id];
+				if (!email) {
+					console.warn("Could not map id to email:", id);
+					continue;
+				}
+				payload.assignments[email] = Array.isArray(tplIds) ? tplIds : [];
+			}
+
+			if (!Object.keys(payload.assignments).length) {
+				return alert(
+					"No valid recipient-email mappings found for current selection. Make sure your recipients are selected."
+				);
+			}
+
+			try {
+				const statusEl =
+					document.getElementById("status") || document.createElement("div");
+				statusEl.innerText = "Sending...";
+				const resp = await fetch("/api/send_messages", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload),
+				});
+				const data = await resp.json();
+				if (!resp.ok) {
+					console.error("Send failed", data);
+					statusEl.innerText =
+						"Send failed: " +
+						(data && data.message ? data.message : resp.statusText);
+					return;
+				}
+				console.log("Send result", data);
+				statusEl.innerText = `Sent: ${data.success}, Failed: ${data.failed}. See console for details.`;
+				alert(
+					`Send complete. Success: ${data.success}, Failed: ${data.failed}`
+				);
+			} catch (err) {
+				console.error("Network/send error:", err);
+				alert("Network error while sending. See console for details.");
+			}
+		}
+
+		button = document.getElementById("sendAssignments")
+		button.addEventListener("click", () => {
+			if (!confirm("Send all emails? This cannot be undone, please make sure")) return;	
+			sendAssignmentsToServer();
+		});
+
 	</script>
 </html>

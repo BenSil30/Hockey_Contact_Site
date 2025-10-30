@@ -1,747 +1,133 @@
 <!DOCTYPE html>
-<head>
-	<meta charset="utf-8" />
-	<title>Hockey Contact Form</title>
-	<style>
-		body {
-			font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-			padding: 18px;
-			max-width: 900px;
-			margin: auto;
-		}
-		.search-wrap {
-			position: relative;
-			max-width: 640px;
-		}
-		#search {
-			width: 100%;
-			padding: 10px;
-			font-size: 16px;
-			box-sizing: border-box;
-		}
-		.dropdown {
-			position: absolute;
-			left: 0;
-			right: 0;
-			top: calc(100% + 6px);
-			background: white;
-			border: 1px solid #ddd;
-			box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-			max-height: 280px;
-			overflow: auto;
-			z-index: 20;
-		}
-		.item {
-			padding: 10px;
-			border-bottom: 1px solid #f0f0f0;
-			cursor: pointer;
-		}
-		.item:hover,
-		.item.active {
-			background: #f7faff;
-		}
-		.muted {
-			color: #666;
-			font-size: 13px;
-		}
-		.selected-list {
-			margin-top: 24px;
-			display: flex;
-			flex-direction: column;
-			gap: 8px;
-			max-width: 640px;
-		}
-		.chip {
-			display: flex;
-			align-items: center;
-			gap: 8px;
-			background: #f2f6ff;
-			padding: 8px 10px;
-			border-radius: 12px;
-		}
-		.chip .meta {
-			font-size: 14px;
-		}
-		.chip button {
-			margin-left: auto;
-			background: transparent;
-			border: 0;
-			cursor: pointer;
-			color: #c00;
-			font-weight: 600;
-		}
-		.no-results {
-			padding: 12px;
-			color: #666;
-		}
-	</style>
-</head>
-<html>
-	<h1>Hockey Contact Form</h1>
-	<button id="logout">Log out</button>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Hockey Contact Form</title>
 
-	<h1>Pick emails</h1>
-	<p>Search the list of emails and add recipients to your selection.</p>
-
-	<div class="search-wrap" aria-haspopup="listbox">
-		<input
-			id="search"
-			placeholder="Search by name, email, or subject..."
-			aria-label="Search emails"
-			autocomplete="off"
-		/>
-		<div id="dropdown" class="dropdown" role="listbox" hidden></div>
-	</div>
-
-	<div class="selected-list" id="selectedList" aria-live="polite"></div>
-
-	<h1>Pick templates</h1>
-	<div id="templates"></div>
-
-	<button id="sendAssignments">Send assignments</button>
-
-	<script>
-		document
-			.getElementById("logout")
-			.addEventListener("click", () => (location.href = "/auth/logout"));
-		(async function () {
-			// ----- config -----
-			const API = "/api/emails";
-			const DEBOUNCE_MS = 180;
-
-			// ----- state -----
-			let emails = [];
-			let filtered = [];
-			let selected = new Map(); // id -> email object
-			let activeIndex = -1;
-
-			// ----- DOM -----
-			const input = document.getElementById("search");
-			const dropdown = document.getElementById("dropdown");
-			const selectedList = document.getElementById("selectedList");
-
-			// ----- helpers -----
-			const debounce = (fn, ms) => {
-				let t;
-				return (...args) => {
-					clearTimeout(t);
-					t = setTimeout(() => fn(...args), ms);
-				};
-			};
-
-			function renderDropdown() {
-				if (!filtered.length) {
-					dropdown.innerHTML = '<div class="no-results">No results</div>';
-					dropdown.hidden = false;
-					return;
-				}
-				dropdown.innerHTML = filtered
-					.map((e, i) => {
-						const disabled = selected.has(e.id)
-							? 'aria-disabled="true" style="opacity:.6;pointer-events:none;"'
-							: "";
-						return `
-							<div class="item" data-id="${e.id}" role="option" ${disabled}>
-								<strong>${escapeHtml(e.sponsor)}</strong>
-								<span class="muted">&lt;${escapeHtml(e.email)}&gt;</span>
-							</div>
-						`;
-					})
-					.join("");
-				const nodes = dropdown.querySelectorAll(".item");
-				nodes.forEach((n, i) =>
-					n.classList.toggle("active", i === activeIndex)
-				);
-				dropdown.hidden = false;
+		<!--  immediate rendering while CSS loads -->
+		<style>
+			body {
+				font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+				margin: 0;
+				padding: 20px;
+				background: transparent;
+				background: linear-gradient(180deg, #18181b, #23272f);
 			}
+			#dropdown[hidden] {
+				display: none;
+			}
+		</style>
 
-			function renderSelectedList() {
-				if (selected.size === 0) {
-					selectedList.innerHTML =
-						'<div class="muted">No recipients selected yet.</div>';
-					return;
-				}
-				selectedList.innerHTML = Array.from(selected.values())
-					.map(
-						(e) => `
-				<div class="chip" data-id="${e.id}">
-					<div class="meta">
-						<strong>${escapeHtml(e.sponsor)}</strong> <span class="muted">&lt;${escapeHtml(
-							e.email
-						)}&gt;</span><br>
+		<link rel="stylesheet" href="/css/style.css" />
+	</head>
+	<body>
+		<div class="container">
+			<header class="header" role="banner">
+				<div>
+					<h1>Hockey Advocacy Forms</h1>
+					<div class="small">
+						Select recipients and assign templates below. You can edit the
+						templates by clicking the 'edit' button before sending.
+					</div>
+					<div class="small">
+						Please note that these emails will be sent from your personal email
+						address and you are solely responsible for the content
+					</div>
+				</div>
+				<div>
+					<button id="logout" type="button">Log out</button>
+				</div>
+			</header>
+
+			<!-- Templates bar (full-width card above layout) -->
+			<div id="templates" class="templates-card" aria-live="polite">
+				<div class="muted">Loading templates…</div>
+			</div>
+
+			<!-- Two-column layout: left = search/list, right = info -->
+			<div class="layout">
+				<section class="panel" aria-labelledby="pick-emails">
+					<h2 id="pick-emails">Pick emails</h2>
+					<p class="muted">
+						Search the list of emails and add recipients to your selection.
+					</p>
+
+					<div class="search-wrap" aria-haspopup="listbox">
+						<input
+							id="search"
+							name="search"
+							placeholder="Search by name, email, or organization"
+							aria-label="Search emails"
+							autocomplete="off"
+						/>
+						<div id="dropdown" class="dropdown" role="listbox" hidden></div>
+					</div>
+
+					<div class="selected-list" id="selectedList" aria-live="polite"></div>
+				</section>
+
+				<!-- Right: Information -->
+				<aside class="info-panel" aria-labelledby="assign-templates">
+					<section class="panel">
+						<h3 id="assign-templates">Info and Coverage</h3>
+
+						<div style="padding: 12px; margin: 12px 0">
+							<button>
+								<h2>
+									<a
+										class="buttonLink"
+										href="https://docs.google.com/document/u/0/d/1HVX9LF_0gv8snAmh_NDKBWchCr1kEiBkoBL98qx68N8/mobilebasic"
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										Shareable Google Document
+									</a>
+								</h2>
+							</button>
+							<p class="muted">
+								Inspiration for the site, and contains almost all information
+								used here
+							</p>
 						</div>
-						<button aria-label="Remove ${escapeHtml(e.name)}" data-id="${
-							e.id
-						}">Remove</button>
+						<div style="padding: 12px; margin: 12px 0">
+							<button>
+								<h2>
+									<a
+										class="buttonLink"
+										href="https://web.archive.org/web/20250920002243/https://www.nhl.com/news/nhl-statement-on-status-of-dube-foote-formenton-hart-mcleod"
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										Official NHL Statement
+									</a>
+								</h2>
+							</button>
+							<p class="muted">
+								Issued Sept 11, 2025. Archived Sept 20th, 2025
+							</p>
 						</div>
-						`
-					)
-					.join("");
+					</section>
+				</aside>
+			</div>
 
-				selectedList.querySelectorAll("button").forEach((btn) => {
-					btn.addEventListener("click", (ev) => {
-						const id = ev.currentTarget.dataset.id;
-						selected.delete(id);
-						renderSelectedList();
-						// filterAndRender(input.value);
-					});
-				});
-			}
+			<div class="template-editor">
+				
+			</div>
+		</div>
+		<!-- .container -->
 
-			function escapeHtml(s = "") {
-				return String(s).replace(
-					/[&<>"']/g,
-					(ch) =>
-						({
-							"&": "&amp;",
-							"<": "&lt;",
-							">": "&gt;",
-							'"': "&quot;",
-							"'": "&#39;",
-						}[ch])
-				);
-			}
-
-			function filterAndRender(query) {
-				const q = String(query || "")
-					.trim()
-					.toLowerCase();
-				if (!q) {
-					// default: show first 20, excluding selected
-					filtered = emails.filter((e) => !selected.has(e.id)).slice(0, 20);
-				} else {
-					filtered = emails
-						.filter((e) => {
-							if (selected.has(e.id)) return false; // hide already selected
-							return (
-								(e.sponsor || "").toLowerCase().includes(q) ||
-								(e.email || "").toLowerCase().includes(q)
-							);
-						})
-						.slice(0, 50); // cap results
-				}
-				activeIndex = filtered.length ? 0 : -1;
-				renderDropdown();
-			}
-
-			// ----- keyboard nav handlers -----
-			input.addEventListener("keydown", (ev) => {
-				if (dropdown.hidden) return;
-				const nodes = dropdown.querySelectorAll(".item");
-				if (!nodes.length) return;
-				if (ev.key === "ArrowDown") {
-					ev.preventDefault();
-					activeIndex = Math.min(activeIndex + 1, nodes.length - 1);
-					nodes.forEach((n, i) =>
-						n.classList.toggle("active", i === activeIndex)
-					);
-					nodes[activeIndex].scrollIntoView({ block: "nearest" });
-				} else if (ev.key === "ArrowUp") {
-					ev.preventDefault();
-					activeIndex = Math.max(activeIndex - 1, 0);
-					nodes.forEach((n, i) =>
-						n.classList.toggle("active", i === activeIndex)
-					);
-					nodes[activeIndex].scrollIntoView({ block: "nearest" });
-				} else if (ev.key === "Enter") {
-					ev.preventDefault();
-					if (activeIndex >= 0 && activeIndex < filtered.length) {
-						pickEmail(filtered[activeIndex].id);
-					}
-				} else if (ev.key === "Escape") {
-					dropdown.hidden = true;
-				}
-			});
-
-			// ----- click to pick -----
-			dropdown.addEventListener("click", (ev) => {
-				const item = ev.target.closest(".item");
-				if (!item) return;
-				const id = item.dataset.id;
-				if (id) pickEmail(id);
-			});
-
-			function pickEmail(id) {
-				const e = emails.find((x) => x.id === id);
-				if (!e) return;
-				if (selected.has(e.id)) return; // should not happen because we hide selected in dropdown
-				selected.set(e.id, e);
-				renderSelectedList();
-				input.value = "";
-				dropdown.hidden = true;
-			}
-
-			// ----- blur behavior: close dropdown after small delay so click registers -----
-			input.addEventListener("blur", () =>
-				setTimeout(() => {
-					dropdown.hidden = true;
-				}, 150)
-			);
-			input.addEventListener("focus", () => {
-				filterAndRender(input.value);
-			});
-
-			// ----- search with debounce -----
-			const debouncedFilter = debounce(
-				(val) => filterAndRender(val),
-				DEBOUNCE_MS
-			);
-			input.addEventListener("input", (ev) => {
-				debouncedFilter(ev.target.value);
-			});
-
-			// ----- load emails from server -----
-			try {
-				const resp = await fetch(API);
-				if (!resp.ok) throw new Error("fetch failed: " + resp.status);
-				data = await resp.json();
-				emails = data.Sponsor_emails;
-			} catch (err) {
-				console.error("Could not load emails:", err);
-				dropdown.innerHTML =
-					'<div class="no-results">Failed to load emails. Try reloading the page.</div>';
-				dropdown.hidden = false;
-				return;
-			}
-
-			// initial render
-			renderSelectedList();
-			filterAndRender("");
-		})();
-	</script>
-
-	<script>
-		(async function () {
-			// ----- config -----
-			const API = "/api/email_templates";
-			const DEBOUNCE_MS = 180;
-
-			// ----- state -----
-			let templates = [];
-			let filtered = [];
-			let selected = new Map(); // id -> email object
-			let activeIndex = -1;
-
-			// ----- DOM -----
-			const templatesRoot = document.getElementById("templates");
-
-			if (!templatesRoot) {
-				console.error("Template root not found");
-				return;
-			}
-
-			const templateControls = document.createElement("div");
-			templateControls.style.margin = "8px";
-			templateControls.style.display = "flex";
-			templateControls.style.flexDirection = "column";
-			templateControls.style.gap = "12px";
-
-			const cardArea = document.createElement("div");
-			cardArea.style.display = "flex";
-			cardArea.style.flexWrap = "wrap";
-			cardArea.style.gap = "8";
-			cardArea.setAttribute("aria-label", "Template List");
-
-			// Instructions
-			const instructions = document.createElement("div");
-			instructions.style.fontSize = "13px";
-			instructions.style.color = "#333";
-			instructions.innerText =
-				"Select template chips (click) to choose template(s). Then click a selected recipient below to assign.";
-
-			// selected emails list
-			const assignArea = document.createElement("div");
-			assignArea.style.display = "flex";
-			assignArea.style.flexDirection = "column";
-			assignArea.style.gap = "8px";
-			assignArea.style.marginTop = "8px";
-			assignArea.style.cursor = "pointer";
-
-			const controlsRow = document.createElement("div");
-			controlsRow.style.display = "flex";
-			controlsRow.style.gap = "8px";
-			controlsRow.style.alignItems = "center";
-
-			const refreshBtn = document.createElement("button");
-			refreshBtn.textContent = "Refresh selected recipients";
-			refreshBtn.style.cursor = "pointer";
-
-			const clearAssignmentsBtn = document.createElement("button");
-			clearAssignmentsBtn.textContent = "Clear all assignments";
-			clearAssignmentsBtn.style.cursor = "pointer";
-
-			controlsRow.appendChild(refreshBtn);
-			controlsRow.appendChild(clearAssignmentsBtn);
-
-			templateControls.appendChild(instructions);
-			templateControls.appendChild(cardArea);
-			templateControls.appendChild(controlsRow);
-			templateControls.appendChild(assignArea);
-
-			templatesRoot.innerHTML = "";
-			templatesRoot.appendChild(templateControls);
-
-			//  escape utility
-			const esc = (s = "") =>
-				String(s).replace(
-					/[&<>"']/g,
-					(ch) =>
-						({
-							"&": "&amp;",
-							"<": "&lt;",
-							">": "&gt;",
-							'"': "&quot;",
-							"'": "&#39;",
-						}[ch])
-				);
-
-			try {
-				const resp = await fetch(API);
-				if (!resp.ok) throw new Error("fetch failed: " + resp.status);
-				data = await resp.json();
-				templates = data.Email_Templates;
-			} catch (err) {
-				console.error("Could not load templates:", err);
-				cardArea.innerHTML =
-					'<div class="muted">Failed to load templates.</div>';
-				return;
-			}
-
-			let selectedTemplateId = -1;
-
-			function renderTemplateCards() {
-				cardArea.innerHTML = "";
-				templates.forEach((t) => {
-					const chip = document.createElement("button");
-					chip.className = "tpl-chip";
-					chip.dataset.tplId = t.id;
-					chip.style.padding = "8px 10px";
-					chip.style.border = "1px solid #d0d7ef";
-					chip.style.borderRadius = "16px";
-					chip.style.background = "#f8fbff";
-					chip.style.cursor = "pointer";
-					chip.style.fontSize = "13px";
-					chip.innerHTML = `<strong>${esc(t.name)}</strong>`;
-					if (selectedTemplateId == t.id) {
-						chip.style.boxShadow = "0 0 0 3px rgba(58,108,255,0.12)";
-						chip.style.background = "#eaf0ff";
-					}
-					chip.addEventListener("click", (ev) => {
-						ev.preventDefault();
-						const id = chip.dataset.tplId;
-						if (selectedTemplateId == id) selectedTemplateId = -1;
-						else selectedTemplateId = id;
-						renderTemplateCards();
-						updateInstructions();
-					});
-					chip.title = t.name ? t.name.substring(0, 500) : "";
-					cardArea.appendChild(chip);
-				});
-			}
-
-			function updateInstructions() {
-				if (selectedTemplateId == -1) {
-					instructions.innerText =
-						"Click template chips to select template(s). Then click a recipient below to assign.";
-				} else if (selectedTemplateId > -1) {
-					instructions.innerText = `Template selected (${selectedTemplateId}). Click a recipient to assign / toggle it.`;
-				}
-			}
-
-			// Assignments storage (local): map of emailId -> array of templateIds (persisted)
-			const STORAGE_KEY = "email_template_assignments_v1";
-			function loadAssignments() {
+		<script type="module" src="/js/emailSelector.js"></script>
+		<script type="module" src="/js/templateAssigner.js"></script>
+		<script>
+			function clearStorage() {
 				try {
-					const raw = localStorage.getItem(STORAGE_KEY);
-					return raw ? JSON.parse(raw) : {};
-				} catch (e) {
+					localStorage.clear();
+				} catch (err) {
 					return {};
 				}
 			}
-
-			function saveAssignments(obj) {
-				localStorage.setItem(STORAGE_KEY, JSON.stringify(obj || {}));
-			}
-
-			let assignments = loadAssignments(); 
-
-			// Helper: read selected recipients directly from DOM (existing selected chips)
-			function readSelectedRecipientsFromDOM() {
-				const container = document.getElementById("selectedList");
-				if (!container) return [];
-				// chips use data-id attribute (as in your markup)
-				const chips = container.querySelectorAll(".chip[data-id]");
-				const out = [];
-				chips.forEach((ch) => {
-					const id = ch.dataset.id;
-					const name = ch.querySelector(".meta strong")
-						? ch.querySelector(".meta strong").innerText
-						: "";
-					const emailMatch = ch.querySelector(".meta .muted")
-						? ch.querySelector(".meta .muted").innerText
-						: "";
-					const email = emailMatch.replace(/[<>]/g, "").trim();
-					out.push({ id, name, email });
-				});
-				return out;
-			}
-
-			function renderAssignmentsUI() {
-				assignArea.innerHTML = "";
-				const recipients = readSelectedRecipientsFromDOM();
-				if (!recipients.length) {
-					assignArea.innerHTML =
-						'<div class="muted">No recipients selected. Pick recipients above to assign templates.</div>';
-					return;
-				}
-
-				// header row
-				const header = document.createElement("div");
-				header.style.display = "flex";
-				header.style.gap = "12px";
-				header.style.alignItems = "center";
-				header.style.fontWeight = "600";
-				header.innerHTML = `<div style="width:260px">Recipient</div><div>Assigned templates</div>`;
-				assignArea.appendChild(header);
-
-				recipients.forEach((r) => {
-					const row = document.createElement("div");
-					row.style.display = "flex";
-					row.style.gap = "12px";
-					row.style.alignItems = "center";
-					row.style.padding = "8px 6px";
-					row.style.borderRadius = "6px";
-					row.style.background = "#fff";
-					row.style.border = "1px solid #f1f3f8";
-
-					const rInfo = document.createElement("div");
-					rInfo.style.width = "260px";
-					rInfo.innerHTML = `<strong>${esc(
-						r.name
-					)}</strong> <span class="muted">&lt;${esc(r.email)}&gt;</span>`;
-
-					const assArea = document.createElement("div");
-					assArea.style.display = "flex";
-					assArea.style.flexWrap = "wrap";
-					assArea.style.gap = "6px";
-
-					const assignedForThis = assignments[r.id] ?? [];
-
-					// render assigned template chips with remove button
-					if (!assignedForThis.length) {
-						assArea.innerHTML =
-							'<span class="muted">No templates assigned</span>';
-					} else {
-						assignedForThis.forEach((tid) => {
-							const tpl = templates.find((x) => x.id === tid);
-							const chip = document.createElement("div");
-							chip.style.padding = "6px 8px";
-							chip.style.borderRadius = "12px";
-							chip.style.background = "#f2f6ff";
-							chip.style.border = "1px solid #dbe8ff";
-							chip.style.display = "inline-flex";
-							chip.style.alignItems = "center";
-							chip.innerHTML = `<span style="font-size:13px">${esc(
-								tpl ? tpl.name : tid
-							)}</span>`;
-							const rem = document.createElement("button");
-							rem.textContent = "✕";
-							rem.style.marginLeft = "8px";
-							rem.style.border = "none";
-							rem.style.background = "transparent";
-							rem.style.cursor = "pointer";
-							rem.title = "Remove assignment";
-							rem.addEventListener("click", () => {
-								assignments[r.id] = (assignments[r.id] || []).filter(
-									(x) => x !== tid
-								);
-								if (!assignments[r.id].length) delete assignments[r.id];
-								saveAssignments(assignments);
-								renderAssignmentsUI();
-							});
-							chip.appendChild(rem);
-							assArea.appendChild(chip);
-						});
-					}
-
-					// !todo: restrict if people can send "conflicting" emails for the same cause to the same person (you can send an email protesting hart and quenneville to the same person, but not two hart to the same person)
-					// Make the entire row clickable to assign currently-selected template
-					row.addEventListener("click", (ev) => {
-						// ignore clicks on remove buttons (they have button tag)
-						if (ev.target.tagName.toLowerCase() === "button") return;
-						if (selectedTemplateId == -1) {
-							return;
-						}
-						// this enables multiple assignments per recipient, we want to disable it for now
-						// assign/toggle selected template for this recipient
-						// assignments[r.id] = assignments[r.id] || [];
-
-						// if (assignments[r.id].includes(selectedTemplateId)) {
-						// 	// remove assignment
-						// 	assignments[r.id] = assignments[r.id].filter((x) => x !== selectedTemplateId);
-						// } else {
-						// 	// add assignment
-						// 	assignments[r.id].push(selectedTemplateId);
-						// }
-						assignments[r.id] = [];
-						assignments[r.id].push(selectedTemplateId);
-
-						// cleanup empty arrays
-						if (!assignments[r.id].length) delete assignments[r.id];
-						saveAssignments(assignments);
-						renderAssignmentsUI();
-					});
-
-					row.appendChild(rInfo);
-					row.appendChild(assArea);
-					assignArea.appendChild(row);
-				});
-
-				const payloadBtn = document.createElement("button");
-				payloadBtn.textContent = "Prepare send payload (show mapping)";
-				payloadBtn.style.marginTop = "12px";
-				payloadBtn.addEventListener("click", () => {
-					const mapping = {};
-					const recipientsNow = readSelectedRecipientsFromDOM();
-					recipientsNow.forEach((r) => {
-						mapping[r.email] = assignments[r.id] ?? [];
-					});
-					// show mapping as pretty JSON in a modal-ish overlay
-					const overlay = document.createElement("div");
-					overlay.style.position = "fixed";
-					overlay.style.left = 0;
-					overlay.style.top = 0;
-					overlay.style.right = 0;
-					overlay.style.bottom = 0;
-					overlay.style.background = "rgba(0,0,0,0.35)";
-					overlay.style.display = "flex";
-					overlay.style.alignItems = "center";
-					overlay.style.justifyContent = "center";
-					const box = document.createElement("pre");
-					box.style.background = "#fff";
-					box.style.padding = "18px";
-					box.style.borderRadius = "8px";
-					box.style.maxWidth = "90%";
-					box.style.maxHeight = "80%";
-					box.style.overflow = "auto";
-					box.textContent = JSON.stringify(mapping, null, 2);
-					const close = document.createElement("button");
-					close.textContent = "Close";
-					close.style.display = "block";
-					close.style.marginTop = "12px";
-					close.addEventListener("click", () =>
-						document.body.removeChild(overlay)
-					);
-					box.appendChild(close);
-					overlay.appendChild(box);
-					document.body.appendChild(overlay);
-				});
-				assignArea.appendChild(payloadBtn);
-			}
-
-			refreshBtn.addEventListener("click", () => {
-				// have to re-render here bc of new recipients
-				renderAssignmentsUI();
-			});
-			clearAssignmentsBtn.addEventListener("click", () => {
-				if (!confirm("Clear all template assignments?")) return;
-				assignments = {};
-				saveAssignments(assignments);
-				renderAssignmentsUI();
-			});
-
-			// 👀 changes for re-render
-			const selContainer = document.getElementById("selectedList");
-			if (selContainer) {
-				const mo = new MutationObserver(() => {
-					renderAssignmentsUI();
-				});
-				mo.observe(selContainer, { childList: true, subtree: true });
-			}
-
-			renderTemplateCards();
-			updateInstructions();
-			renderAssignmentsUI();
-		})();
-	</script>
-
-	<script>
-		async function sendAssignmentsToServer() {
-			const assignments_file = "email_template_assignments_v1";
-			const raw = localStorage.getItem(assignments_file);
-			if (!raw) return alert("No assignments found in localStorage.");
-
-			let assignments = {};
-			try {
-				assignments = JSON.parse(raw); 
-			} catch (e) {
-				return alert("Saved assignments malformed.");
-			}
-
-			const selectedContainer = document.getElementById("selectedList");
-			const idToEmail = {};
-			if (selectedContainer) {
-				selectedContainer.querySelectorAll(".chip[data-id]").forEach((chip) => {
-					const id = chip.dataset.id;
-					// metadata formatting: <strong>Name</strong> <span class="muted">&lt;email&gt;</span>
-					const muted = chip.querySelector(".meta .muted");
-					const emailText = muted
-						? muted.textContent.replace(/[<>]/g, "").trim()
-						: null;
-					if (id && emailText) idToEmail[id] = emailText;
-				});
-			}
-
-			// server expects: { assignments: { "email": ["tpl1","tpl2"], ... } }
-			const payload = { assignments: {} };
-			for (const [id, tplIds] of Object.entries(assignments)) {
-				const email = idToEmail[id];
-				if (!email) {
-					console.warn("Could not map id to email:", id);
-					continue;
-				}
-				payload.assignments[email] = Array.isArray(tplIds) ? tplIds : [];
-			}
-
-			if (!Object.keys(payload.assignments).length) {
-				return alert(
-					"No valid recipient-email mappings found for current selection. Make sure your recipients are selected."
-				);
-			}
-
-			try {
-				const statusEl =
-					document.getElementById("status") || document.createElement("div");
-				statusEl.innerText = "Sending...";
-				const resp = await fetch("/api/send_messages", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(payload),
-				});
-				const data = await resp.json();
-				if (!resp.ok) {
-					console.error("Send failed", data);
-					statusEl.innerText =
-						"Send failed: " +
-						(data && data.message ? data.message : resp.statusText);
-					return;
-				}
-				console.log("Send result", data);
-				statusEl.innerText = `Sent: ${data.success}, Failed: ${data.failed}. See console for details.`;
-				alert(
-					`Send complete. Success: ${data.success}, Failed: ${data.failed}`
-				);
-			} catch (err) {
-				console.error("Network/send error:", err);
-				alert("Network error while sending. See console for details.");
-			}
-		}
-
-		button = document.getElementById("sendAssignments")
-		button.addEventListener("click", () => {
-			if (!confirm("Send all emails? This cannot be undone, please make sure")) return;	
-			sendAssignmentsToServer();
-		});
-
-	</script>
+			clearStorage();
+		</script>
+	</body>
 </html>

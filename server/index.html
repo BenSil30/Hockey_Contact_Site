@@ -3,11 +3,37 @@
 	<head>
 		<meta charset="utf-8" />
 		<title>Hockey Contact Demo</title>
+		<link rel="stylesheet" href="/css/style.css" />
 	</head>
 	<body>
-		<h1>Hockey Contact Demo</h1>
-		<button>
-			<a href="/auth/google">Sign in with Google</a>
-		</button>
+		<div
+			style="
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				min-height: 100vh;
+			"
+		>
+			<div
+				style="
+					background: #1f2729;
+					padding: 32px 40px;
+					border-radius: 12px;
+					box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					gap: 24px;
+				"
+			>
+				<h1>Hockey Advocacy Sender</h1>
+				<button>
+					<a href="/auth/google" class="buttonLink"
+						>Sign in with Google</a
+					>
+				</button>
+			</div>
+		</div>
 	</body>
 </html>

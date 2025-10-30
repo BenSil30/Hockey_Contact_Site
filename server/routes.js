@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 
 export default (app) => {
+
 	// Landing page
 	app.get("/", (req, res) => {
 		res.sendFile(path.join(__dirname, "index.html"));
@@ -62,45 +63,6 @@ export default (app) => {
 		res.sendFile(path.join(__dirname, "ui.html"));
 	});
 
-	// API: list recent emails
-	// app.get("/api/emails", async (req, res) => {
-	// 	if (!req.session.tokens) return res.status(401).send({ error: "not_auth" });
-
-	// 	const oauth2Client = createOAuth2Client();
-	// 	oauth2Client.setCredentials(req.session.tokens);
-	// 	const gmail = google.gmail({ version: "v1", auth: oauth2Client });
-
-	// 	try {
-	// 		// list message IDs
-	// 		const listRes = await gmail.users.messages.list({ userId: "me", maxResults: 10 });
-	// 		const messages = listRes.data.messages || [];
-
-	// 		// fetch metadata for each message (subject, from, snippet)
-	// 		const results = [];
-	// 		for (const m of messages) {
-	// 			const msg = await gmail.users.messages.get({
-	// 				userId: "me",
-	// 				id: m.id,
-	// 				format: "metadata",
-	// 				metadataHeaders: ["Subject", "From", "Date"]
-	// 			});
-	// 			const headers = msg.data.payload?.headers || [];
-	// 			const findHeader = (name) => (headers.find(h => h.name === name) || {}).value || "";
-	// 			results.push({
-	// 				id: msg.data.id,
-	// 				threadId: msg.data.threadId,
-	// 				subject: findHeader("Subject"),
-	// 				from: findHeader("From"),
-	// 				date: findHeader("Date"),
-	// 				snippet: msg.data.snippet || ""
-	// 			});
-	// 		}
-	// 		res.json(results);
-	// 	} catch (err) {
-	// 		console.error("Error listing emails:", err);
-	// 		res.status(500).json({ error: "failed_to_list" });
-	// 	}
-	// });
 
 	app.get("/api/emails", async (req, res) => {
 		try {
